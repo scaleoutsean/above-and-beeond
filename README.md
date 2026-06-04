@@ -14,7 +14,11 @@ Additional features may be added, but my primary focus is NetApp E-Series-specif
 If your BeeGFS version is > 8.3, first try the script out on a test VM to make sure it works correctly. The initial release was created from beeond in v8.3.1.
 
 - Copy the two scripts to `/opt/beegfs/lib/` and make them executable
-- Create a config file with **deterministic** device names. Example with non-deterministic device names, `ab.yaml`:
+```sh
+sudo cp ./beeond/source/above-and-beeond /usr/bin/
+sudo cp ./beeond/scripts/lib/above-and-beeond-stoplocal /opt/beegfs/lib/
+```
+- Create a config file with node names and **deterministic** device names. Example with non-deterministic device names, `ab.yaml`:
 ```yaml
 node1:
  - meta: [/dev/vdb]
@@ -26,7 +30,7 @@ node2:
 - Deploy:
   
 ```sh
-sudo /usr/bin/beeond start -y ab.yaml -c /mnt/beeond
+sudo above-and-beeond start -y ab.yaml -c /mnt/beeond
 ```
 - End result might look like something like this (view from `node1`):
 ```sh
@@ -38,7 +42,7 @@ Filesystem                        1K-blocks    Used Available Use% Mounted on
 beegfs_ondemand                    31195136  182272  31195136   3% /mnt/beeond
 ```
 
-- The stop command works as expected; if `-d` is passed to `stop`, `wipefs` is used to nuke data on the constituent volumes
+- The stop command works as expected; if `-d` is passed to `above-and-beeond stop`, `wipefs` is used to nuke data on the constituent volumes
 
 ## Tips for NetApp E-Series users
 
@@ -48,9 +52,15 @@ beegfs_ondemand                    31195136  182272  31195136   3% /mnt/beeond
 - Create MD and data disks and present them individually to each host
   - 5% for metadata - 2.85 TB x 0.05 = 140 GiB
   - 95% for data  - 2.85 TB x 0.95 = 2.7 TiB. Split in 2 volumes x 1.35 TB
-- Rescan and validate access
-- Create a YAML file using unique device names and run `above-and-beeond`
+- Re-scan and validate access. Example for RoCE/NVMe:
 
+```sh
+sudo nvme discover -t rdma -a <ONE_OF_SANTRICITY_PORTS>
+sudo nvme connect-all -t rdma -a <ONE_OF_SANTRICITY_PORTS>
+sudo nvme list
+```
+
+- Create a YAML file using unique device names and run `above-and-beeond`:
 ```yaml
 host1:
   - meta: [/dev/disk/by-id/scsi-3600605b00f3eb5202516998299f4ab26]
@@ -67,6 +77,12 @@ host4:
 host5:
   - meta: [/dev/disk/by-id/scsi-3600605b00f3eb5202516998299f4ab14]
   - data: [/dev/disk/by-id/scsi-3600605b00f3eb5202516998299f4ab15, /dev/disk/by-id/scsi-3600605b00f3eb5202516998299f4ab16]  
+```
+
+```sh
+# vim ab.yaml
+sudo above-and-beeond start -y ab.yaml -c /mnt/beeond
+# sudo beegfs license --get  --tls-disable --mgmtd-addr h2:9010 --auth-disable # if using default port shift
 ```
 
 This workflow can be easily automated with my SANtricity client libraries (Go, Python, PowerShell) or Terraform Provider for SANtricity.
