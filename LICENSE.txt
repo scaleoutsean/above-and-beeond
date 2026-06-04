@@ -1,0 +1,13 @@
+BeeGFS License Agreement
+========================
+
+Copyright (c) 2009 Fraunhofer ITWM, 2022 ThinkParQ GmbH
+
+Use of the provided software and libraries is governed by the BeeGFS License Agreement
+found at https://www.beegfs.io/docs/BeeGFS_License_Agreement.txt.
+
+THIRD PARTY LICENSES
+====================
+
+- Code added to upstream to create above-and-beeond is github.com/scaleoutSean and licensed under the MIT License since day of publishing
+- As of BeeeGFS License from 2026/02, BeeGFS Community users can create BeeOND cluster of up to five (5) compute nodes
