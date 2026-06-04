@@ -13,7 +13,7 @@ Additional features may be added, but my primary focus is NetApp E-Series-specif
 
 If your BeeGFS version is > 8.3, first try the script out on a test VM to make sure it works correctly. The initial release was created from beeond in v8.3.1.
 
-- Copy the two scripts to `/opt/beegfs/lib/` and make them executable
+- Copy the two scripts to the same directories `beeond` and `beegfs-ondemand-stoplocal` exist:
 ```sh
 sudo cp ./beeond/source/above-and-beeond /usr/bin/
 sudo cp ./beeond/scripts/lib/above-and-beeond-stoplocal /opt/beegfs/lib/
