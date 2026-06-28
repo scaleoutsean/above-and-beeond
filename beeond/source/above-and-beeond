@@ -551,6 +551,7 @@ start_meta_servers()
    local MGMTD=$3
    local PORT_SHIFT=$4 # port shift can be empty!
    local CFG_PATH=$5 # may be empty
+   local PORT_SHIFT_BASE=${6:-${PORT_SHIFT}}
    local CFG_FILE=${CFG_PATH}/${META_CFG_NAME}
 
    local LOGFILE=${LOG_PATH}/${META_BIN}_${CURRENTTIME}_${PORT_SHIFT:-0}.log
@@ -565,7 +566,11 @@ needed parameters"
 
    DATAPATH=${DATAPATH}/${META_BIN}
 
-   PARAMS="sysMgmtdHost=${MGMTD} storeMetaDirectory=${DATAPATH} logStdFile=${LOGFILE} \
+   local PS=${PORT_SHIFT:-0}
+   local PSB=${PORT_SHIFT_BASE:-0}
+   local MGMT_CMD_PORT=$(( 8008 + PSB - PS ))
+
+   PARAMS="sysMgmtdHost=${MGMTD} connMgmtdPort=${MGMT_CMD_PORT} storeMetaDirectory=${DATAPATH} logStdFile=${LOGFILE} \
       ${CONNAUTH_LEGACY} runDaemonized=true pidFile=${PIDFILE}"
 
    if [ "${PORT_SHIFT}" != "" ]
@@ -636,6 +641,7 @@ start_storage_servers()
    local MGMTD=$3
    local PORT_SHIFT=$4 # port shift can be empty!
    local CFG_PATH=$5 # may be empty
+   local PORT_SHIFT_BASE=${6:-${PORT_SHIFT}}
    local CFG_FILE=${CFG_PATH}/${STORAGE_CFG_NAME}
 
    local LOGFILE=${LOG_PATH}/${STORAGE_BIN}_${CURRENTTIME}_${PORT_SHIFT:-0}.log
@@ -650,7 +656,11 @@ needed parameters"
 
    DATAPATH=${DATAPATH}/${STORAGE_BIN}
 
-   PARAMS="sysMgmtdHost=${MGMTD} logStdFile=${LOGFILE} runDaemonized=true pidFile=${PIDFILE} ${CONNAUTH_LEGACY}"
+   local PS=${PORT_SHIFT:-0}
+   local PSB=${PORT_SHIFT_BASE:-0}
+   local MGMT_CMD_PORT=$(( 8008 + PSB - PS ))
+
+   PARAMS="sysMgmtdHost=${MGMTD} connMgmtdPort=${MGMT_CMD_PORT} logStdFile=${LOGFILE} runDaemonized=true pidFile=${PIDFILE} ${CONNAUTH_LEGACY}"
 
    if [ "${PORT_SHIFT}" != "" ]
    then
@@ -1458,7 +1468,7 @@ EOF
             else
                execute_ssh_cmd "${HOST}" "mkdir -p ${dirpath}"
             fi
-            start_meta_servers "${HOST}" "${dirpath}" "${MGMTD}" "${METAPORT_SHIFT}" "${CONFIGPATH}"
+            start_meta_servers "${HOST}" "${dirpath}" "${MGMTD}" "${METAPORT_SHIFT}" "${CONFIGPATH}" "${PORT_SHIFT}"
             METAPORT_SHIFT=$((METAPORT_SHIFT + 10))
          done
 
@@ -1473,7 +1483,7 @@ EOF
             else
                execute_ssh_cmd "${HOST}" "mkdir -p ${dirpath}"
             fi
-            start_storage_servers "${HOST}" "${dirpath}" "${MGMTD}" "${STORAGEPORT_SHIFT}" "${CONFIGPATH}"
+            start_storage_servers "${HOST}" "${dirpath}" "${MGMTD}" "${STORAGEPORT_SHIFT}" "${CONFIGPATH}" "${PORT_SHIFT}"
             STORAGEPORT_SHIFT=$((STORAGEPORT_SHIFT + 10))
          done
       done
@@ -1587,10 +1597,29 @@ do_stop()
    QUIET="false"
    CLEANUP="false"
 
-   while getopts "di:n:Pb:Lcq" opt; do
+   while getopts "di:n:y:Pb:Lcq" opt; do
       case $opt in
          n)
             HOSTFILE=${OPTARG}
+         ;;
+         y)
+            ADVANCED_CFG=${OPTARG}
+            if [ -f "${ADVANCED_CFG}" ]; then
+               cat > /tmp/parse_yaml_$$.py << 'EOF'
+import sys, re
+lines = open(sys.argv[1]).read().split('\n')
+hosts = []
+for line in lines:
+   line = line.strip()
+   if not line or line.startswith('#'): continue
+   if line.endswith(':'):
+      hosts.append(line[:-1])
+print('\n'.join(hosts))
+EOF
+               HOSTFILE=$(mktemp /tmp/beeond_hosts_XXXXXX)
+               python3 /tmp/parse_yaml_$$.py "${ADVANCED_CFG}" > "${HOSTFILE}"
+               rm -f /tmp/parse_yaml_$$.py
+            fi
          ;;
          i)
             STATUSFILE=${OPTARG}
