@@ -87,6 +87,8 @@ sudo above-and-beeond start -y ab.yaml -c /mnt/beeond
 # sudo above-and-beeond stop -y ab.yaml
 ```
 
+`above-and-beeond stop` unmounts disks, but just like `beeond stop` it takes `-d` to wipe data. 
+
 This workflow can be easily automated with my SANtricity client libraries (Go, Python, PowerShell) or Terraform Provider for SANtricity.
 
 ## Performance notes
@@ -94,6 +96,10 @@ This workflow can be easily automated with my SANtricity client libraries (Go, P
 My primary use case is read-caching. In casual testing (10-20 runs), BeeOND with RAID 0 performs very well (both read performance and latency), as I recommend it for environments where short downtime in case of a disk failure is tolerable (have a spare disk ready and in the chassis - it takes 30 seconds to replace a failed disk and can even be automated). On RAID 0 disk groups, I set volume segment size for MD volumes to 32 KiB and for data disk volumes to whatever matches my workload (example: 512 KiB for sequential).
 
 Use RAID 10 disk groups if you downtime (or data loss) prevention can justify additional resources. Have a "global" hot spare assigned.
+
+## BeeGFS notes
+
+After running one of the tests I noticed uneven utilization of data disks. I did not investigate since the cluster was already destroyed, but you may want to pay attention to this if you use multi-disk nodes.
 
 ## License
 
