@@ -82,10 +82,18 @@ host5:
 ```sh
 # vim ab.yaml
 sudo above-and-beeond start -y ab.yaml -c /mnt/beeond
-# sudo beegfs license --get  --tls-disable --mgmtd-addr h2:9010 --auth-disable # if using default port shift
+# sudo beegfs license --get  --tls-disable --mgmtd-addr h2:9008 --auth-disable # make sure the port is right
+
+# sudo above-and-beeond stop -y ab.yaml
 ```
 
 This workflow can be easily automated with my SANtricity client libraries (Go, Python, PowerShell) or Terraform Provider for SANtricity.
+
+## Performance notes
+
+My primary use case is read-caching. In casual testing (10-20 runs), BeeOND with RAID 0 performs very well (both read performance and latency), as I recommend it for environments where short downtime in case of a disk failure is tolerable (have a spare disk ready and in the chassis - it takes 30 seconds to replace a failed disk and can even be automated). On RAID 0 disk groups, I set volume segment size for MD volumes to 32 KiB and for data disk volumes to whatever matches my workload (example: 512 KiB for sequential).
+
+Use RAID 10 disk groups if you downtime (or data loss) prevention can justify additional resources. Have a "global" hot spare assigned.
 
 ## License
 
