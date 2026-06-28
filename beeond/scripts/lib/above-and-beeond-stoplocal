@@ -179,6 +179,38 @@ sl_stop_services()
                   fi
                fi
             fi
+            if [ -n "${ADVANCED_CFG}" ] && [ -f "${ADVANCED_CFG}" ]; then
+               local host=$(hostname)
+               cat > /tmp/parse_yaml_stop_$$.py << 'EOF'
+import sys, re
+lines = open(sys.argv[1]).read().split('\n')
+my_host = sys.argv[2]
+curr = None
+mnts = []
+for line in lines:
+    line = line.strip()
+    if not line or line.startswith('#'): continue
+    if line.endswith(':'): curr = line[:-1]
+    elif curr == my_host and line.startswith('-'):
+        match = re.match(r'-\s*(meta|data):\s*\[(.*?)\]', line)
+        if match:
+             kind, paths = match.groups()
+             mnts.extend([p.strip() for p in paths.split(',') if p.strip() and p.strip().startswith('/mnt/')])
+print('\n'.join(mnts))
+EOF
+               local mntpoints=$(python3 /tmp/parse_yaml_stop_$$.py "${ADVANCED_CFG}" "${host}")
+               rm -f /tmp/parse_yaml_stop_$$.py
+               for mnt in ${mntpoints}; do
+                  if mountpoint -q "${mnt}"; then
+                     sl_print_info "Unmounting advanced yaml target: ${mnt}"
+                     local devnode=$(findmnt -n -o SOURCE "${mnt}")
+                     sudo umount "${mnt}"
+                     if [ -n "${devnode}" ]; then
+                        sudo wipefs -a "${devnode}" || true
+                     fi
+                  fi
+               done
+            fi
          fi
 
       # delete preferredMds and preferredTarget files
@@ -317,14 +349,18 @@ do_stoplocal()
 
    local ERROR="false"
    local STATUSFILE="${DEFAULT_STATUSFILE}"
+   local ADVANCED_CFG=""
 
    local OPTIND=1
    local OPTARG=""
-   while getopts ":i:dLusqc" opt "$@"
+   while getopts ":i:dLusqcy:" opt "$@"
    do
       case $opt in
          i)
             STATUSFILE=${OPTARG}
+         ;;
+         y)
+            ADVANCED_CFG=${OPTARG}
          ;;
          d)
             DELETE_DATA="true"

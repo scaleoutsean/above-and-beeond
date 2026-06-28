@@ -1053,6 +1053,11 @@ make_stoplocal_args()
       STOPLOCAL_ARGS="${STOPLOCAL_ARGS} -c" # don't complain about missing files (from properly shut
    fi                                       # down beegfs-ondemand instances)
 
+   if [ -n "${ADVANCED_CFG}" ]
+   then
+      STOPLOCAL_ARGS="${STOPLOCAL_ARGS} -y ${ADVANCED_CFG}"
+   fi
+
    echo "${STOPLOCAL_ARGS}"
 }
 
